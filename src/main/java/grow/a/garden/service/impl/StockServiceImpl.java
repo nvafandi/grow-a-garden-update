@@ -5,13 +5,17 @@ import grow.a.garden.dto.response.base.BaseResponse;
 import grow.a.garden.dto.response.stok.*;
 import grow.a.garden.dto.response.telegram.TelegramMessageResponse;
 import grow.a.garden.service.StockService;
+import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.stream.Collectors;
@@ -30,10 +34,14 @@ public class StockServiceImpl implements StockService {
     @Value("${telegram.bot.channel.id}")
     private String chatId;
 
+
     private final RestTemplate restTemplate;
 
-    public StockServiceImpl(RestTemplate restTemplate) {
+    private final RedisTemplate<String, String> redisTemplate;
+
+    public StockServiceImpl(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate) {
         this.restTemplate = restTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -116,6 +124,8 @@ public class StockServiceImpl implements StockService {
         message.append("\n\nupdated at : ")
                 .append(inventory.getUpdateAt());
 
+        if (!isSame(message.toString())) message.setLength(0);
+
         return message.toString();
     }
 
@@ -139,11 +149,34 @@ public class StockServiceImpl implements StockService {
         return false;
     }
 
-    @Scheduled(cron = "0 */2 * * * *")
+    private boolean isSame(String message) {
+        String hash = DigestUtils.md5DigestAsHex(message.getBytes());
+        String key = "|MESSAGE|";
+
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        String existingMessage = ops.get(key);
+
+        if (existingMessage == null) {
+            // Tidak ada di Redis, simpan
+            ops.set(key, hash);
+            return true;
+        } else if (!existingMessage.equals(hash)) {
+            // Ada tapi berbeda, update
+            ops.set(key, hash);
+            return true; // berarti boleh kirim pesan
+        }
+
+        return false;
+    }
+
+    @Scheduled(fixedRate = 30000) // setiap 30 detik
     private void updatedStock() {
         log.info("scheduler running");
 
         String message = message();
+
+        log.warn("message : {}", message);
 
         StringBuilder url = new StringBuilder();
         url.append(baseUrl)
@@ -157,7 +190,7 @@ public class StockServiceImpl implements StockService {
 
         log.info("sendMessage: {}", url);
 
-        if (isRare(message)) {
+        if (isRare(message) && StringUtils.isNotBlank(message)) {
             restTemplate.exchange(
                     url.toString(),
                     HttpMethod.GET,
