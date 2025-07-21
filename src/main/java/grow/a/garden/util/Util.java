@@ -6,6 +6,8 @@ import grow.a.garden.repository.External;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -89,9 +91,9 @@ public class Util {
     }
 
     public static String getCurrentTimeFormatted() {
+        ZonedDateTime nowJakarta = ZonedDateTime.now(ZoneId.of("Asia/Jakarta"));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss", new Locale("id", "ID"));
-        LocalTime time = LocalTime.now();
-        return time.format(timeFormatter);
+        return nowJakarta.format(timeFormatter);
     }
 
 }
