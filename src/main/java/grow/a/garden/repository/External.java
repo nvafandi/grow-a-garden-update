@@ -8,5 +8,5 @@ public interface External {
 
     void sendMessage(String message);
 
-    boolean isMessageSame(String message);
+    boolean checkExistingMessage(String message);
 }

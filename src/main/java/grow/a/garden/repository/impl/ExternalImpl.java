@@ -3,6 +3,7 @@ package grow.a.garden.repository.impl;
 import grow.a.garden.dto.response.stok.UpdateResponse;
 import grow.a.garden.dto.response.telegram.TelegramMessageResponse;
 import grow.a.garden.repository.External;
+import grow.a.garden.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -60,6 +61,12 @@ public class ExternalImpl implements External {
 
     @Override
     public void sendMessage(String message) {
+        StringBuilder lastMessage = new StringBuilder(message);
+        lastMessage.append("\nsent at : ")
+                .append(Util.getCurrentTimeFormatted());
+
+        log.info("message: {}", lastMessage);
+
         try {
             StringBuilder url = new StringBuilder();
             url.append(baseUrl)
@@ -68,7 +75,7 @@ public class ExternalImpl implements External {
                     .append("chat_id=")
                     .append(chatId)
                     .append("&text=")
-                    .append(message)
+                    .append(lastMessage)
                     .append("&parse_mode=Markdown");
 
             restTemplate.exchange(
@@ -85,7 +92,7 @@ public class ExternalImpl implements External {
     }
 
     @Override
-    public boolean isMessageSame(String message) {
+    public boolean checkExistingMessage(String message) {
         String hash = DigestUtils.md5DigestAsHex(message.getBytes());
         String key = "|MESSAGE|";
 
