@@ -1,7 +1,8 @@
 package grow.a.garden.repository.impl;
 
-import grow.a.garden.dto.response.stok.UpdateResponse;
+import grow.a.garden.dto.response.stok.UpdateStockResponse;
 import grow.a.garden.dto.response.telegram.TelegramMessageResponse;
+import grow.a.garden.dto.response.user.UsersResponse;
 import grow.a.garden.repository.External;
 import grow.a.garden.util.Util;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.util.List;
 
 @Repository
 @Slf4j
@@ -46,17 +48,39 @@ public class ExternalImpl implements External {
     }
 
     @Override
-    public UpdateResponse getStock() {
-        UpdateResponse updateResponse = new UpdateResponse();
+    public UpdateStockResponse getStock() {
+        UpdateStockResponse updateStockResponse = new UpdateStockResponse();
         try {
-            ResponseEntity<UpdateResponse> response = restTemplate.getForEntity(externalUrl, UpdateResponse.class);
+            ResponseEntity<UpdateStockResponse> response = restTemplate.getForEntity(externalUrl, UpdateStockResponse.class);
             if (response.getStatusCode().equals(HttpStatus.OK)) {
-                updateResponse = response.getBody();
+                updateStockResponse = response.getBody();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return updateResponse;
+        return updateStockResponse;
+    }
+
+    @Override
+    public UsersResponse getUsers() {
+        UsersResponse usersResponse = new UsersResponse();
+
+        StringBuilder url = new StringBuilder(baseUrl);
+        url.append(token)
+                .append("/getUpdates");
+
+        try {
+            ResponseEntity<UsersResponse> response = restTemplate.getForEntity(url.toString(), UsersResponse.class);
+
+            if (response.getStatusCode().equals(HttpStatus.OK)) {
+                usersResponse = response.getBody();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return usersResponse;
     }
 
     @Override
@@ -85,6 +109,42 @@ public class ExternalImpl implements External {
                     TelegramMessageResponse.class
             );
             log.info("Message sent");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Message failed to send: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendMessageV2(String message, List<String> users) {
+        StringBuilder lastMessage = new StringBuilder(message);
+        lastMessage.append("\nsent at : ")
+                .append(Util.getCurrentTimeFormatted());
+
+        log.info("message: {}", lastMessage);
+
+        try {
+            users.stream().forEach(user -> {
+                StringBuilder url = new StringBuilder();
+                url.append(baseUrl)
+                        .append(token)
+                        .append("/sendMessage?")
+                        .append("chat_id=")
+                        .append(user)
+                        .append("&text=")
+                        .append(lastMessage)
+                        .append("&parse_mode=Markdown");
+
+                restTemplate.exchange(
+                        url.toString(),
+                        HttpMethod.GET,
+                        null,
+                        TelegramMessageResponse.class
+                );
+                log.info("Message sent to: {}", user);
+            });
+
+
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Message failed to send: {}", e.getMessage());
