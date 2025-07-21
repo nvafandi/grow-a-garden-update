@@ -19,10 +19,11 @@ public class StockController {
 
     @GetMapping("/stock")
     ResponseEntity<Object> stock() {
-        var response = stockService.getStock();
+        var response = stockService.getUpdate();
 
-        return ResponseEntity.ok
-                (response);
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
     }
 
     @PostMapping("/send")
@@ -30,6 +31,8 @@ public class StockController {
 
         var response = stockService.sendMessage();
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.
+                status(response.getStatus())
+                .body(response);
     }
 }

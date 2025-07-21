@@ -2,6 +2,12 @@ package grow.a.garden.constant;
 
 public class Constant {
 
+    public static String SUCCESS_GET_STOCK = "Success get stock";
+
+    public static String SUCCESS_SEND_MESSAGE = "Success sent message";
+
+    public static String MESSAGE_ALREADY_SENT = "Message has already been sent";
+
     public static String BASIC_SPRINKLER = "Basic Sprinkler";
 
     public static String ADVANCED_SPRINKLER = "Advanced Sprinkler";
