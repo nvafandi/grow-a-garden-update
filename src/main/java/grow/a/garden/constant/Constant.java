@@ -30,7 +30,7 @@ public class Constant {
 
     public static String PEPPER_SEED = "Pepper Seed";
 
-    public static String BEANSTALK_SEED = "Beanstalk Seed";
+    public static String BEANSTALK_SEED = "Beanstalk";
 
     public static String EMBER_LILY = "Ember Lily";
 

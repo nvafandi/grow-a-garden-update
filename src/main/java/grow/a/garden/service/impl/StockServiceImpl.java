@@ -39,12 +39,11 @@ public class StockServiceImpl implements StockService {
                     .message("Error when get stock : " + e.getMessage())
                     .build();
         }
-
         return baseResponse;
     }
 
     @Override
-    public BaseResponse<Object> sendMessage() {
+    public BaseResponse sendMessage() {
         BaseResponse baseResponse;
 
         var stock = external.getStock();
@@ -77,16 +76,17 @@ public class StockServiceImpl implements StockService {
 
     @Scheduled(fixedRate = 15000) // setiap 15 detik
     private void updatedStock() {
-        log.info("scheduler running");
+        log.info("Begin scheduler");
 
-        var stock = external.getStock();
+        var message = Util.buildMessage(external.getStock().getData());
 
-        var message = Util.buildMessage(stock.getData());
-
-        log.warn("message : {}", message);
-
-        if (Util.isRare(message) && StringUtils.isNotBlank(message)) {
+        if (Util.isRare(message) &&
+                StringUtils.isNotBlank(message) &&
+                external.checkExistingMessage(message)
+        ) {
             external.sendMessage(message);
+        } else {
+            log.info("Nothing is rare");
         }
         log.info("End of scheduler");
     }

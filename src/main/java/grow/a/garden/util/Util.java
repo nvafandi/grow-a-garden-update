@@ -32,7 +32,13 @@ public class Util {
 
         message.append("*Gear* \n").append(
                 gear.getItems().stream()
-                        .map(item -> String.format("%s %s - %d", item.getEmoji(), item.getName(), item.getQuantity()))
+                        .map(item -> {
+                            String name = item.getName();
+                            if (name.contains(Constant.MASTER_SPRINKLER)) {
+                                name = "**" + name + "**";
+                            }
+                            return String.format("%s %s - %d", item.getEmoji(), name, item.getQuantity());
+                        })
                         .collect(Collectors.joining("\n"))
         );
 
@@ -67,16 +73,14 @@ public class Util {
         message.append("\n\nupdated at : ")
                 .append(inventory.getUpdateAt());
 
-        if (!external.isMessageSame(message.toString())) return "";
-
-        message.append("\nsent at : ")
-                .append(Util.getCurrentTimeFormatted());
-
         return message.toString();
     }
 
     public static boolean isRare(String message) {
-        return message.contains(Constant.MASTER_SPRINKLER) ||
+        return message.contains(Constant.BASIC_SPRINKLER) ||
+                message.contains(Constant.ADVANCED_SPRINKLER) ||
+                message.contains(Constant.GODLY_SPRINKLER) ||
+                message.contains(Constant.MASTER_SPRINKLER) ||
                 message.contains(Constant.RARE_SUMMER_EGG) ||
                 message.contains(Constant.PARADISE_EGG) ||
                 message.contains(Constant.BUG_EGG) ||
