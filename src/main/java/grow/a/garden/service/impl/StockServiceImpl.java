@@ -3,6 +3,7 @@ package grow.a.garden.service.impl;
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.base.BaseResponse;
 import grow.a.garden.repository.External;
+import grow.a.garden.repository.UserRepository;
 import grow.a.garden.service.StockService;
 import grow.a.garden.util.Util;
 import io.micrometer.common.util.StringUtils;
@@ -17,8 +18,11 @@ public class StockServiceImpl implements StockService {
 
     private final External external;
 
-    public StockServiceImpl(External external) {
+    private final UserRepository userRepository;
+
+    public StockServiceImpl(External external, UserRepository userRepository) {
         this.external = external;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -30,7 +34,7 @@ public class StockServiceImpl implements StockService {
 
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.OK.value())
-                    .message(Constant.SUCCESS_GET_STOCK)
+                    .message(Constant.Message.SUCCESS_GET_STOCK)
                     .data(response.getData())
                     .build();
         } catch (Exception e) {
@@ -56,13 +60,13 @@ public class StockServiceImpl implements StockService {
             } else {
                 return BaseResponse.builder()
                         .status(HttpStatus.NO_CONTENT.value())
-                        .message(Constant.MESSAGE_ALREADY_SENT)
+                        .message(Constant.Message.MESSAGE_ALREADY_SENT)
                         .build();
             }
 
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.OK.value())
-                    .message(Constant.SUCCESS_SEND_MESSAGE)
+                    .message(Constant.Message.SUCCESS_SEND_MESSAGE)
                     .build();
         } catch (Exception e) {
             baseResponse = BaseResponse.builder()
@@ -74,7 +78,7 @@ public class StockServiceImpl implements StockService {
         return baseResponse;
     }
 
-    @Scheduled(fixedRate = 15000) // setiap 15 detik
+//    @Scheduled(fixedRate = 15000) // setiap 15 detik
     private void updatedStock() {
         log.info("Begin scheduler");
 
@@ -85,6 +89,31 @@ public class StockServiceImpl implements StockService {
                 external.checkExistingMessage(message)
         ) {
             external.sendMessage(message);
+        } else {
+            log.info("Nothing is rare");
+        }
+        log.info("End of scheduler");
+    }
+
+    @Scheduled(fixedRate = 15000) // setiap 15 detik
+    private void updatedStockV2() {
+        log.info("Begin scheduler");
+
+        log.info("Check User");
+        var users = userRepository.checkExistUser();
+
+        if (users.isEmpty()) {
+            users = userRepository.getListUser();
+            userRepository.storeUser(users);
+        }
+
+        var message = Util.buildMessage(external.getStock().getData());
+
+        if (Util.isRare(message) &&
+                StringUtils.isNotBlank(message) &&
+                external.checkExistingMessage(message)
+        ) {
+            external.sendMessageV2(message, users);
         } else {
             log.info("Nothing is rare");
         }

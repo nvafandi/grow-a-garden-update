@@ -5,7 +5,6 @@ import grow.a.garden.dto.response.stok.*;
 import grow.a.garden.repository.External;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,7 +33,7 @@ public class Util {
                 gear.getItems().stream()
                         .map(item -> {
                             String name = item.getName();
-                            if (name.contains(Constant.MASTER_SPRINKLER)) {
+                            if (name.contains(Constant.Gear.MASTER_SPRINKLER)) {
                                 name = "**" + name + "**";
                             }
                             return String.format("%s %s - %d", item.getEmoji(), name, item.getQuantity());
@@ -62,7 +61,7 @@ public class Util {
             );
         }
 
-        if (travelingmerchant != null && !travelingmerchant.getStatus().equals(Constant.LEAVED)) {
+        if (travelingmerchant != null && !travelingmerchant.getStatus().equals(Constant.Other.LEAVED)) {
             message.append("\n\n*Traveling Merchant* \n").append(
                     travelingmerchant.getItems().stream()
                             .map(item -> String.format("%s %s - %d", item.getEmoji(), item.getName(), item.getQuantity()))
@@ -77,21 +76,26 @@ public class Util {
     }
 
     public static boolean isRare(String message) {
-        return message.contains(Constant.BASIC_SPRINKLER) ||
-                message.contains(Constant.ADVANCED_SPRINKLER) ||
-                message.contains(Constant.GODLY_SPRINKLER) ||
-                message.contains(Constant.MASTER_SPRINKLER) ||
-                message.contains(Constant.RARE_SUMMER_EGG) ||
-                message.contains(Constant.PARADISE_EGG) ||
-                message.contains(Constant.BUG_EGG) ||
-                message.contains(Constant.MUSHROOM_SEED) ||
-                message.contains(Constant.BEANSTALK_SEED) ||
-                message.contains(Constant.EMBER_LILY) ||
-                message.contains(Constant.SUGAR_APPLE) ||
-                message.contains(Constant.BURNING_BUD) ||
-                message.contains(Constant.GIANT_PINECONE_SEED) ||
+        return message.contains(Constant.Gear.BASIC_SPRINKLER) ||
+                message.contains(Constant.Gear.ADVANCED_SPRINKLER) ||
+                message.contains(Constant.Gear.GODLY_SPRINKLER) ||
+                message.contains(Constant.Gear.MASTER_SPRINKLER) ||
+                message.contains(Constant.Gear.MEDIUM_TOY) ||
+                message.contains(Constant.Gear.MEDIUM_TREAT) ||
+                message.contains(Constant.Gear.TANNING_MIRROR) ||
+                message.contains(Constant.Gear.LEVELUP_LOLLIPOP) ||
+                message.contains(Constant.Egg.COMMON_SUMMER_EGG) ||
+                message.contains(Constant.Egg.RARE_SUMMER_EGG) ||
+                message.contains(Constant.Egg.PARADISE_EGG) ||
+                message.contains(Constant.Egg.BUG_EGG) ||
+                message.contains(Constant.Seed.MUSHROOM) ||
+                message.contains(Constant.Seed.BEANSTALK) ||
+                message.contains(Constant.Seed.EMBER_LILY) ||
+                message.contains(Constant.Seed.SUGAR_APPLE) ||
+                message.contains(Constant.Seed.BURNING_BUD) ||
+                message.contains(Constant.Seed.GIANT_PINECONE) ||
 //                message.contains(Constant.ADDITIONAL) ||
-                message.contains(Constant.TRAVELING);
+                message.contains(Constant.Other.TRAVELING);
     }
 
     public static String getCurrentTimeFormatted() {

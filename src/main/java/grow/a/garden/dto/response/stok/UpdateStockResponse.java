@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class UpdateResponse {
+public class UpdateStockResponse {
 
     private String status;
 
