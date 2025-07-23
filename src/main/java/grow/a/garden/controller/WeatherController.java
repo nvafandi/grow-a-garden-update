@@ -17,7 +17,16 @@ public class WeatherController {
     }
 
     @GetMapping("/weather")
-    ResponseEntity<Object> weather() {
+    ResponseEntity<Object> getWeather() {
+        var response = weatherService.getWeather();
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
+
+    @GetMapping("/syncWeather")
+    ResponseEntity<Object> synchWeather() {
         var response = weatherService.getUpdateWeather();
 
         return ResponseEntity

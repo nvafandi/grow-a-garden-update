@@ -8,4 +8,6 @@ public interface ItemsService {
 
     BaseResponse<Object> syncItems();
 
+    BaseResponse<Object> updateItemIcon(String itemId, String icon);
+
 }
