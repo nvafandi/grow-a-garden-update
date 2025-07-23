@@ -2,17 +2,15 @@ package grow.a.garden.service.impl;
 
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.base.BaseResponse;
-import grow.a.garden.dto.response.user.UsersResponse;
+import grow.a.garden.dto.response.weather.Weather;
 import grow.a.garden.repository.ExternalApi;
-import grow.a.garden.repository.UserRepository;
-import grow.a.garden.repository.WeatherRepository;
-import grow.a.garden.repository.jpa.UsersJpaRepository;
+import grow.a.garden.repository.jpa.ItemsJpaRepository;
 import grow.a.garden.service.WeatherService;
-import grow.a.garden.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @Slf4j
@@ -20,17 +18,50 @@ public class WeatherServiceImpl implements WeatherService {
 
     private final ExternalApi externalApi;
 
-    private final WeatherRepository weatherRepository;
+    private final ItemsJpaRepository itemsJpaRepository;
 
-    private final UserRepository userRepository;
-
-    private final UsersJpaRepository usersJpaRepository;
-
-    public WeatherServiceImpl(ExternalApi externalApi, WeatherRepository weatherRepository, UserRepository userRepository, UsersJpaRepository usersJpaRepository) {
+    public WeatherServiceImpl(ExternalApi externalApi, ItemsJpaRepository itemsJpaRepository) {
         this.externalApi = externalApi;
-        this.weatherRepository = weatherRepository;
-        this.userRepository = userRepository;
-        this.usersJpaRepository = usersJpaRepository;
+        this.itemsJpaRepository = itemsJpaRepository;
+    }
+
+    @Override
+    public BaseResponse<Object> getWeather() {
+        BaseResponse baseResponse;
+
+        try {
+            var item = itemsJpaRepository.findAllByType(Constant.Keys.WEATHER);
+
+            if (item.isEmpty()) {
+                return BaseResponse.builder()
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("Not weather found")
+                        .build();
+            }
+
+            List<Weather> weatherList = item.stream()
+                    .map(itemsEntity -> Weather.builder()
+                            .weatherId(itemsEntity.getItemId())
+                            .weatherName(itemsEntity.getDisplayName())
+                            .icon(itemsEntity.getIcon())
+                            .build()
+                    )
+                    .toList();
+
+            baseResponse = BaseResponse.builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Success get weather")
+                    .data(weatherList)
+                    .build();
+
+        } catch (Exception e) {
+            baseResponse = BaseResponse.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Error when get weather : " + e.getMessage())
+                    .build();
+        }
+
+        return baseResponse;
     }
 
     @Override
@@ -39,8 +70,6 @@ public class WeatherServiceImpl implements WeatherService {
 
         try {
             var response = externalApi.getWeather();
-
-//            updateWeather();
 
             if (response == null) {
                 return BaseResponse.builder()
@@ -63,37 +92,4 @@ public class WeatherServiceImpl implements WeatherService {
         return baseResponse;
     }
 
-    @Scheduled(fixedRate = 15000)
-    private void updateWeather() {
-        var weather = weatherRepository.listWeather();
-
-        if (Util.isActive(weather)) {
-            log.info("Check User");
-            var users = userRepository.checkExistUser();
-
-            if (users.isEmpty()) {
-                var userEntities = usersJpaRepository.findAll();
-
-                if (userEntities.isEmpty()) {
-                    var getUsers = externalApi.getUsers();
-                    userRepository.saveUser(getUsers);
-                    userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
-                } else {
-                    var userList = userEntities.stream()
-                            .map(usersEntity -> usersEntity.getId().toString())
-                            .distinct()
-                            .toList();
-                    userRepository.storeUser(userList);
-                }
-            }
-
-            var message = Util.buildWeatherMessage(weather);
-
-            if (externalApi.checkExistWeather(message)) {
-                externalApi.sendMessageV2(message, users);
-            }
-        } else {
-            log.info("No active weather");
-        }
-    }
 }

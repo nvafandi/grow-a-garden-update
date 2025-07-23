@@ -13,6 +13,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Component
@@ -148,6 +149,14 @@ public class Util {
             return null;
         }
         return objectMapper.readValue(json, typeReference);
+    }
+
+    public static <T> boolean updateIfChanged(T oldValue, T newValue, Consumer<T> setter) {
+        if (!Objects.equals(oldValue, newValue)) {
+            setter.accept(newValue);
+            return true;
+        }
+        return false;
     }
 
 }

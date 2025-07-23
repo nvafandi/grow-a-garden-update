@@ -2,10 +2,7 @@ package grow.a.garden.controller;
 
 import grow.a.garden.service.ItemsService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
@@ -26,9 +23,20 @@ public class ItemsController {
                 .body(response);
     }
 
-    @PostMapping("/saveItems")
-    public ResponseEntity<Object> saveItems() {
+    @PostMapping("/syncItems")
+    public ResponseEntity<Object> syncItems() {
         var response = itemsService.syncItems();
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
+
+    @PutMapping("/updateIcon")
+    public ResponseEntity<Object> put(
+            @RequestParam("itemId") String itemId,
+            @RequestParam("iconUrl") String icon) {
+        var response = itemsService.updateItemIcon(itemId, icon);
 
         return ResponseEntity
                 .status(response.getStatus())

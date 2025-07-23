@@ -11,6 +11,7 @@ public class Constant {
 
     public static class Keys {
         public static String WEATHER_KEY = "|WEATHER|";
+        public static String WEATHER = "weather";
     }
 
     public static class Message {

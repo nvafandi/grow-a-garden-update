@@ -42,7 +42,7 @@ public class ItemsEntity {
     @Column(name = "currency")
     private String currency;
 
-    @Column(name = "icon")
+    @Column(name = "icon", columnDefinition = "nvarchar(255)")
     private String icon;
 
     @Column(name = "description")
