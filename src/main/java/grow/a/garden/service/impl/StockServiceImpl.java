@@ -2,8 +2,10 @@ package grow.a.garden.service.impl;
 
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.base.BaseResponse;
-import grow.a.garden.repository.External;
+import grow.a.garden.dto.response.user.UsersResponse;
+import grow.a.garden.repository.ExternalApi;
 import grow.a.garden.repository.UserRepository;
+import grow.a.garden.repository.jpa.UsersJpaRepository;
 import grow.a.garden.service.StockService;
 import grow.a.garden.util.Util;
 import io.micrometer.common.util.StringUtils;
@@ -16,13 +18,16 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class StockServiceImpl implements StockService {
 
-    private final External external;
+    private final ExternalApi externalApi;
 
     private final UserRepository userRepository;
 
-    public StockServiceImpl(External external, UserRepository userRepository) {
-        this.external = external;
+    private final UsersJpaRepository usersJpaRepository;
+
+    public StockServiceImpl(ExternalApi externalApi, UserRepository userRepository, UsersJpaRepository usersJpaRepository) {
+        this.externalApi = externalApi;
         this.userRepository = userRepository;
+        this.usersJpaRepository = usersJpaRepository;
     }
 
     @Override
@@ -30,7 +35,7 @@ public class StockServiceImpl implements StockService {
         BaseResponse baseResponse;
 
         try {
-            var response = external.getStock();
+            var response = externalApi.getStock();
 
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.OK.value())
@@ -50,13 +55,13 @@ public class StockServiceImpl implements StockService {
     public BaseResponse sendMessage() {
         BaseResponse baseResponse;
 
-        var stock = external.getStock();
+        var stock = externalApi.getStock();
 
-        var message = Util.buildMessage(stock.getData());
+        var message = Util.buildStockMessage(stock.getData());
 
         try {
             if (StringUtils.isNotBlank(message)) {
-                external.sendMessage(message);
+                externalApi.sendMessage(message);
             } else {
                 return BaseResponse.builder()
                         .status(HttpStatus.NO_CONTENT.value())
@@ -78,45 +83,37 @@ public class StockServiceImpl implements StockService {
         return baseResponse;
     }
 
-//    @Scheduled(fixedRate = 15000) // setiap 15 detik
+    @Scheduled(fixedRate = 15000) // setiap 15 detik
     private void updatedStock() {
         log.info("Begin scheduler");
 
-        var message = Util.buildMessage(external.getStock().getData());
-
-        if (Util.isRare(message) &&
-                StringUtils.isNotBlank(message) &&
-                external.checkExistingMessage(message)
-        ) {
-            external.sendMessage(message);
-        } else {
-            log.info("Nothing is rare");
-        }
-        log.info("End of scheduler");
-    }
-
-    @Scheduled(fixedRate = 15000) // setiap 15 detik
-    private void updatedStockV2() {
-        log.info("Begin scheduler");
-
-        log.info("Check User");
         var users = userRepository.checkExistUser();
 
         if (users.isEmpty()) {
-            users = userRepository.getListUser();
-            userRepository.storeUser(users);
+            var userEntities = usersJpaRepository.findAll();
+
+            if (userEntities.isEmpty()) {
+                var getUsers = externalApi.getUsers();
+                userRepository.saveUser(getUsers);
+                userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+            } else {
+                var userList = userEntities.stream()
+                        .map(usersEntity -> usersEntity.getId().toString())
+                        .distinct()
+                        .toList();
+                userRepository.storeUser(userList);
+            }
         }
 
-        var message = Util.buildMessage(external.getStock().getData());
+        var stockData = externalApi.getStock().getData();
+        var message = Util.buildStockMessage(stockData);
 
-        if (Util.isRare(message) &&
-                StringUtils.isNotBlank(message) &&
-                external.checkExistingMessage(message)
-        ) {
-            external.sendMessageV2(message, users);
+        if (Util.isRare(message) && StringUtils.isNotBlank(message) && externalApi.checkExistingMessage(message)) {
+            externalApi.sendMessageV2(message, users);
         } else {
             log.info("Nothing is rare");
         }
+
         log.info("End of scheduler");
     }
 
