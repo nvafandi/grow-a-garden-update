@@ -1,12 +1,17 @@
 package grow.a.garden.repository.impl;
 
+import grow.a.garden.constant.Constant;
+import grow.a.garden.dto.response.items.ItemsReponse;
 import grow.a.garden.dto.response.stok.UpdateStockResponse;
 import grow.a.garden.dto.response.telegram.TelegramMessageResponse;
 import grow.a.garden.dto.response.user.UsersResponse;
-import grow.a.garden.repository.External;
+import grow.a.garden.dto.response.weather.UpdateWeatherResponse;
+import grow.a.garden.dto.response.weather.Weather;
+import grow.a.garden.repository.ExternalApi;
 import grow.a.garden.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpMethod;
@@ -17,14 +22,14 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 @Slf4j
-public class ExternalImpl implements External {
-
-    @Value("${base.url}")
-    private String baseUrl;
+public class ExternalApiImpl implements ExternalApi {
 
     @Value("${telegram.bot.token}")
     private String token;
@@ -35,14 +40,11 @@ public class ExternalImpl implements External {
     @Value("${redis.timeout}")
     private int duration;
 
-    @Value("${external.url}")
-    private String externalUrl;
-
     private final RestTemplate restTemplate;
 
     private RedisTemplate<String, String> redisTemplate;
 
-    public ExternalImpl(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate) {
+    public ExternalApiImpl(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate) {
         this.restTemplate = restTemplate;
         this.redisTemplate = redisTemplate;
     }
@@ -51,7 +53,7 @@ public class ExternalImpl implements External {
     public UpdateStockResponse getStock() {
         UpdateStockResponse updateStockResponse = new UpdateStockResponse();
         try {
-            ResponseEntity<UpdateStockResponse> response = restTemplate.getForEntity(externalUrl, UpdateStockResponse.class);
+            ResponseEntity<UpdateStockResponse> response = restTemplate.getForEntity(Constant.URL.STOCK_URL, UpdateStockResponse.class);
             if (response.getStatusCode().equals(HttpStatus.OK)) {
                 updateStockResponse = response.getBody();
             }
@@ -65,7 +67,7 @@ public class ExternalImpl implements External {
     public UsersResponse getUsers() {
         UsersResponse usersResponse = new UsersResponse();
 
-        StringBuilder url = new StringBuilder(baseUrl);
+        StringBuilder url = new StringBuilder(Constant.URL.TELEGRAM_URL);
         url.append(token)
                 .append("/getUpdates");
 
@@ -93,7 +95,7 @@ public class ExternalImpl implements External {
 
         try {
             StringBuilder url = new StringBuilder();
-            url.append(baseUrl)
+            url.append(Constant.URL.TELEGRAM_URL)
                     .append(token)
                     .append("/sendMessage?")
                     .append("chat_id=")
@@ -126,7 +128,7 @@ public class ExternalImpl implements External {
         try {
             users.stream().forEach(user -> {
                 StringBuilder url = new StringBuilder();
-                url.append(baseUrl)
+                url.append(Constant.URL.TELEGRAM_URL)
                         .append(token)
                         .append("/sendMessage?")
                         .append("chat_id=")
@@ -170,4 +172,75 @@ public class ExternalImpl implements External {
         return false;
     }
 
+    @Override
+    public boolean checkExistWeather(String weather) {
+        String hash = DigestUtils.md5DigestAsHex(weather.getBytes());
+        String key = "|WEATHER|";
+
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        String existingWeather = ops.get(key);
+
+        if (existingWeather == null) {
+            ops.set(key, hash, Duration.ofHours(duration)); // new message
+            return true;
+        } else if (!existingWeather.equals(hash)) {
+            ops.set(key, hash, Duration.ofHours(duration)); // message already in redis but different
+            return true;
+        }
+
+        log.info("weather still the same");
+
+        return false;
+    }
+
+    @Override
+    public UpdateWeatherResponse getWeather() {
+        UpdateWeatherResponse weatherResponse = new UpdateWeatherResponse();
+        try {
+            ResponseEntity<UpdateWeatherResponse> response = restTemplate.getForEntity(Constant.URL.WEATHER_URL, UpdateWeatherResponse.class);
+            if (response.getStatusCode().equals(HttpStatus.OK)) {
+                weatherResponse = response.getBody();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return weatherResponse;
+    }
+
+    @Override
+    public Map<String, byte[]> wetherIcon(List<Weather> weatherList) {
+        Map<String, byte[]> mapWeather = new HashMap<>();
+
+        weatherList.forEach(weather -> {
+            ResponseEntity<byte[]> response = restTemplate.exchange(weather.getIcon(), HttpMethod.GET, null, byte[].class);
+            byte[] imageBytes = response.getBody();
+
+            mapWeather.put(weather.getWeatherId(), imageBytes);
+        });
+
+        return mapWeather;
+    }
+
+    @Override
+    public List<ItemsReponse> getItems() {
+        List<ItemsReponse> itemsReponse = null;
+        try {
+            ResponseEntity<List<ItemsReponse>> response = restTemplate.
+                    exchange(
+                            Constant.URL.ALL_ITEMS,
+                            HttpMethod.GET,
+                            null,
+                            new ParameterizedTypeReference<List<ItemsReponse>>() {
+                            }
+                    );
+
+            if (response.getStatusCode().equals(HttpStatus.OK)) {
+                itemsReponse = response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("Error when get all items: {} {}", e.getMessage(), e.getCause());
+        }
+
+        return itemsReponse;
+    }
 }

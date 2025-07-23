@@ -2,10 +2,23 @@ package grow.a.garden.constant;
 
 public class Constant {
 
+    public static class URL {
+        public static String TELEGRAM_URL = "https://api.telegram.org/bot";
+        public static String STOCK_URL = "https://gagstock.gleeze.com/grow-a-garden";
+        public static String WEATHER_URL = "https://api.joshlei.com/v2/growagarden/weather";
+        public static String ALL_ITEMS = "https://api.joshlei.com/v2/growagarden/info";
+    }
+
+    public static class Keys {
+        public static String WEATHER_KEY = "|WEATHER|";
+    }
+
     public static class Message {
         public static final String SUCCESS_GET_STOCK = "Success get stock";
         public static final String SUCCESS_SEND_MESSAGE = "Success sent message";
         public static final String MESSAGE_ALREADY_SENT = "Message has already been sent";
+        public static final String SUCCESS_GET_WEATHER = "Success get weather";
+        public static final String FAILED_GET_WEATHER = "Failed get weather";
     }
 
     public static class Gear {
@@ -17,8 +30,6 @@ public class Constant {
         public static final String MEDIUM_TOY = "Medium Toy";
         public static final String MEDIUM_TREAT = "Medium Treat";
         public static final String LEVELUP_LOLLIPOP = "Levelup Lollipop";
-
-
     }
 
     public static class Seed {

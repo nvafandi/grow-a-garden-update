@@ -1,26 +1,32 @@
 package grow.a.garden.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.stok.*;
-import grow.a.garden.repository.External;
+import grow.a.garden.dto.response.weather.Weather;
+import grow.a.garden.repository.ExternalApi;
 import org.springframework.stereotype.Component;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
 public class Util {
 
-    private static External external = null;
+    private static ExternalApi externalApi = null;
 
-    public Util(External external) {
-        this.external = external;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public Util(ExternalApi externalApi) {
+        this.externalApi = externalApi;
     }
 
-    public static String buildMessage(Inventory inventory) {
+    public static String buildStockMessage(Inventory inventory) {
         StringBuilder message = new StringBuilder();
 
         Gear gear = inventory.getGear();
@@ -34,7 +40,7 @@ public class Util {
                         .map(item -> {
                             String name = item.getName();
                             if (name.contains(Constant.Gear.MASTER_SPRINKLER)) {
-                                name = "**" + name + "**";
+                                name = "*" + name + "*";
                             }
                             return String.format("%s %s - %d", item.getEmoji(), name, item.getQuantity());
                         })
@@ -75,6 +81,25 @@ public class Util {
         return message.toString();
     }
 
+    public static String buildWeatherMessage(List<Weather> weatherList) {
+        StringBuilder message =  new StringBuilder();
+
+        message.append("\uD83C\uDF26\uFE0F *Weather Event Alert!*\n")
+                .append("\n\n");
+
+        weatherList.stream()
+                .filter(weather -> weather.isActive()) // Filter weather berdasarkan id yang ada di list
+                .forEach(weather -> {
+                    message.append("*" + weather.getWeatherName() + "*")
+                            .append("\n\n\nDuration : ")
+                            .append(weather.getDuration() / 60)
+                            .append(" minutes");
+                });
+
+        return message.toString();
+    }
+
+
     public static boolean isRare(String message) {
         return message.contains(Constant.Gear.BASIC_SPRINKLER) ||
                 message.contains(Constant.Gear.ADVANCED_SPRINKLER) ||
@@ -102,6 +127,27 @@ public class Util {
         ZonedDateTime nowJakarta = ZonedDateTime.now(ZoneId.of("Asia/Jakarta"));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss", new Locale("id", "ID"));
         return nowJakarta.format(timeFormatter);
+    }
+
+    public static boolean isActive(List<Weather> weathers) {
+        return weathers.stream()
+                .anyMatch(Weather::isActive);
+    }
+
+
+    public static <T> String serialize(T object) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(object);
+    }
+
+    public static <T> T deserialize(String json, TypeReference<T> typeReference) throws JsonProcessingException {
+        if (json == null || json.isEmpty()) {
+            // return empty object based on type, example for collections: empty list
+            if (typeReference.getType().getTypeName().startsWith("java.util.List")) {
+                return (T) Collections.emptyList();
+            }
+            return null;
+        }
+        return objectMapper.readValue(json, typeReference);
     }
 
 }

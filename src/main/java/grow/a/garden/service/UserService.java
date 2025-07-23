@@ -6,4 +6,6 @@ public interface UserService {
 
     BaseResponse<Object> getUsers();
 
+    BaseResponse<Object> syncUsers();
+
 }

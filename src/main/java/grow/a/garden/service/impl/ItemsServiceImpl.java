@@ -1,46 +1,48 @@
 package grow.a.garden.service.impl;
 
 import grow.a.garden.dto.response.base.BaseResponse;
-import grow.a.garden.dto.response.user.UsersResponse;
 import grow.a.garden.repository.ExternalApi;
-import grow.a.garden.repository.UserRepository;
-import grow.a.garden.service.UserService;
+import grow.a.garden.repository.ItemsRepository;
+import grow.a.garden.service.ItemsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class UserServiceImpl implements UserService {
+public class ItemsServiceImpl implements ItemsService {
 
     private final ExternalApi externalApi;
 
-    private final UserRepository userRepository;
+    private final ItemsRepository itemsRepository;
 
-    public UserServiceImpl(ExternalApi externalApi, UserRepository userRepository) {
+    public ItemsServiceImpl(ExternalApi externalApi, ItemsRepository itemsRepository) {
         this.externalApi = externalApi;
-        this.userRepository = userRepository;
+        this.itemsRepository = itemsRepository;
     }
 
     @Override
-    public BaseResponse<Object> getUsers() {
+    public BaseResponse<Object> getAllItems() {
         BaseResponse baseResponse;
-
         try {
-            var response = externalApi.getUsers();
+            var items = externalApi.getItems();
 
-            log.info(response.toString());
+            if (items == null) {
+                return BaseResponse.builder()
+                        .status(HttpStatus.NO_CONTENT.value())
+                        .message("Failed to get all items")
+                        .build();
+            }
 
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.OK.value())
-                    .message("Success")
-                    .data(response)
+                    .message("Success get items")
+                    .data(items)
                     .build();
-
         } catch (Exception e) {
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("Error when get users: " + e.getMessage())
+                    .message("Error when get all items : " + e.getMessage())
                     .build();
         }
 
@@ -48,35 +50,31 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public BaseResponse<Object> syncUsers() {
+    public BaseResponse<Object> syncItems() {
         BaseResponse baseResponse;
-
         try {
-            var response = externalApi.getUsers();
+            var items = externalApi.getItems();
 
-            if (response == null) {
+            if (items == null) {
                 return BaseResponse.builder()
                         .status(HttpStatus.NO_CONTENT.value())
-                        .message("No users found")
+                        .message("Failed to get all items")
                         .build();
             }
 
-            userRepository.saveUser(response);
-
-            userRepository.storeUser(UsersResponse.fromUsersList(response.getResult()));
+            itemsRepository.saveItems(items);
 
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.OK.value())
-                    .message("Success save users")
+                    .message("Success save items")
                     .build();
         } catch (Exception e) {
             baseResponse = BaseResponse.builder()
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("Error when get users: " + e.getMessage())
+                    .message("Error when save items : " + e.getMessage())
                     .build();
         }
 
         return baseResponse;
     }
 }
-
