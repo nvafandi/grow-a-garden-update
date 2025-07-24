@@ -1,13 +1,20 @@
 package grow.a.garden.service.impl;
 
 import grow.a.garden.dto.response.base.BaseResponse;
+import grow.a.garden.entity.ItemsEntity;
+import grow.a.garden.entity.WishEntity;
 import grow.a.garden.repository.ExternalApi;
 import grow.a.garden.repository.ItemsRepository;
 import grow.a.garden.repository.jpa.ItemsJpaRepository;
+import grow.a.garden.repository.jpa.WishJpaRespository;
 import grow.a.garden.service.ItemsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -16,12 +23,16 @@ public class ItemsServiceImpl implements ItemsService {
     private final ExternalApi externalApi;
 
     private final ItemsRepository itemsRepository;
+
     private final ItemsJpaRepository itemsJpaRepository;
 
-    public ItemsServiceImpl(ExternalApi externalApi, ItemsRepository itemsRepository, ItemsJpaRepository itemsJpaRepository) {
+    private final WishJpaRespository wishJpaRespository;
+
+    public ItemsServiceImpl(ExternalApi externalApi, ItemsRepository itemsRepository, ItemsJpaRepository itemsJpaRepository, WishJpaRespository wishJpaRespository) {
         this.externalApi = externalApi;
         this.itemsRepository = itemsRepository;
         this.itemsJpaRepository = itemsJpaRepository;
+        this.wishJpaRespository = wishJpaRespository;
     }
 
     @Override
@@ -111,4 +122,37 @@ public class ItemsServiceImpl implements ItemsService {
 
         return baseResponse;
     }
+
+    @Override
+    public BaseResponse<Object> updateWish(String userId, String itemId) {
+        BaseResponse baseResponse;
+
+        try {
+            var itemList = List.of(itemId.split(","));
+            
+            var items = itemsJpaRepository.findAllByItemIdIn(itemList);
+
+            if (items.isEmpty()) {
+                return BaseResponse.builder()
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("Item not found")
+                        .build();
+            }
+
+            itemsRepository.saveWishes(userId, items);
+
+            baseResponse = BaseResponse.builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Success update wish")
+                    .build();
+        } catch (Exception e) {
+            baseResponse = BaseResponse.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Error when update wish : " + e.getMessage())
+                    .build();
+        }
+
+        return baseResponse;
+    }
+
 }

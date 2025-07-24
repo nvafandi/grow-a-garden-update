@@ -10,4 +10,6 @@ public interface ItemsService {
 
     BaseResponse<Object> updateItemIcon(String itemId, String icon);
 
+    BaseResponse<Object> updateWish(String userId, String itemId);
+
 }

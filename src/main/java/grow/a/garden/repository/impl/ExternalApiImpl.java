@@ -22,7 +22,6 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -242,5 +241,21 @@ public class ExternalApiImpl implements ExternalApi {
         }
 
         return itemsReponse;
+    }
+
+    @Override
+    public void countEttemps(String key) {
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        Long count = ops.increment(key);
+
+        if (count != null && count == 1) {
+            redisTemplate.expire(key, Duration.ofHours(duration));
+        }
+    }
+
+    @Override
+    public void resetEttemps(String key) {
+        redisTemplate.delete(key);
     }
 }

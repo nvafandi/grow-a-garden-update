@@ -12,6 +12,8 @@ public class Constant {
     public static class Keys {
         public static String WEATHER_KEY = "|WEATHER|";
         public static String WEATHER = "weather";
+        public static String STOCK_ETTEMPS = "|STOCK_ETTEMPS|";
+        public static String WEATHER_ETTEMPS = "|WEATHER_ETTEMPS|";
     }
 
     public static class Message {
