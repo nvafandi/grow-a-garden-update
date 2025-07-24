@@ -43,4 +43,16 @@ public class ItemsController {
                 .body(response);
     }
 
+    @PostMapping("/updateWish")
+    public ResponseEntity<Object> updateWish(
+            @RequestParam("userId") String userId,
+            @RequestParam("itemId") String itemId
+    ) {
+        var response = itemsService.updateWish(userId, itemId);
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
+
 }

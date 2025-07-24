@@ -29,4 +29,7 @@ public interface ExternalApi {
 
     List<ItemsReponse> getItems();
 
+    void countEttemps(String key);
+
+    void resetEttemps(String key);
 }

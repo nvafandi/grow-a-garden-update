@@ -91,7 +91,18 @@ public class UserRepositoryImpl implements UserRepository {
             return;
         }
 
-        List<UsersEntity> entities = usersResponse.getResult().stream()
+        List<String> incomingUserIds = usersResponse.getResult().stream()
+                .map(users -> String.valueOf(users.getMessage().getFrom().getId()))
+                .distinct()
+                .toList();
+
+        List<String> existingUserIds = usersJpaRepository.findAllByUserIdIn(incomingUserIds)
+                .stream()
+                .map(UsersEntity::getUserId)
+                .toList();
+
+        List<UsersEntity> entitiesToSave = usersResponse.getResult().stream()
+                .filter(users -> !existingUserIds.contains(String.valueOf(users.getMessage().getFrom().getId())))
                 .map(users -> UsersEntity.builder()
                         .userId(String.valueOf(users.getMessage().getFrom().getId()))
                         .name(users.getMessage().getFrom().getLastName())
@@ -100,8 +111,12 @@ public class UserRepositoryImpl implements UserRepository {
                 .distinct()
                 .toList();
 
-        usersJpaRepository.saveAll(entities);
+        if (!entitiesToSave.isEmpty()) {
+            usersJpaRepository.saveAll(entitiesToSave);
+            log.info("Saved new users to database: {}", entitiesToSave.size());
+        } else {
+            log.info("No new users to save.");
+        }
 
-        log.info("Save user to database");
     }
 }

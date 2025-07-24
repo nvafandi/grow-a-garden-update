@@ -2,8 +2,10 @@ package grow.a.garden.repository.impl;
 
 import grow.a.garden.dto.response.items.ItemsReponse;
 import grow.a.garden.entity.ItemsEntity;
+import grow.a.garden.entity.WishEntity;
 import grow.a.garden.repository.ItemsRepository;
 import grow.a.garden.repository.jpa.ItemsJpaRepository;
+import grow.a.garden.repository.jpa.WishJpaRespository;
 import grow.a.garden.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -22,8 +24,11 @@ public class ItemsRepositoryImpl implements ItemsRepository {
 
     private final ItemsJpaRepository itemsJpaRepository;
 
-    public ItemsRepositoryImpl(ItemsJpaRepository itemsJpaRepository) {
+    private final WishJpaRespository wishJpaRespository;
+
+    public ItemsRepositoryImpl(ItemsJpaRepository itemsJpaRepository, WishJpaRespository wishJpaRespository) {
         this.itemsJpaRepository = itemsJpaRepository;
+        this.wishJpaRespository = wishJpaRespository;
     }
 
     @Override
@@ -111,6 +116,40 @@ public class ItemsRepositoryImpl implements ItemsRepository {
             log.info("Saved/updated {} item(s) to database", itemsToSaveOrUpdate.size());
         } else {
             log.info("No changes detected; no save/update performed");
+        }
+    }
+
+    @Override
+    public void saveWishes(String userId, List<ItemsEntity> itemsEntities) {
+        if (itemsEntities == null || itemsEntities.isEmpty()) {
+            log.info("No items found");
+            return;
+        }
+
+        Date now = new Date();
+
+        List<String> existingWishIds = wishJpaRespository.findByUserId(userId)
+                .stream()
+                .map(WishEntity::getWishId)
+                .toList();
+
+        List<WishEntity> wishEntitiesToSave = itemsEntities.stream()
+                .filter(item -> !existingWishIds.contains(item.getItemId()))
+                .map(itemsEntity -> WishEntity.builder()
+                        .wishId(itemsEntity.getItemId())
+                        .displayName(itemsEntity.getDisplayName())
+                        .type(itemsEntity.getType())
+                        .userId(userId)
+                        .createdAt(now)
+                        .build()
+                )
+                .toList();
+
+        if (!wishEntitiesToSave.isEmpty()) {
+            wishJpaRespository.saveAll(wishEntitiesToSave);
+            log.info("Saved new wishes to database: {}", wishEntitiesToSave.size());
+        } else {
+            log.info("No new wishes to save.");
         }
     }
 

@@ -1,16 +1,17 @@
 package grow.a.garden.repository.jpa;
 
-import grow.a.garden.entity.UsersEntity;
+import grow.a.garden.entity.WishEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface UsersJpaRepository extends JpaRepository<UsersEntity, UUID> {
+public interface WishJpaRespository extends JpaRepository<WishEntity, UUID> {
 
-    List<UsersEntity> findAllByUserIdIn(List<String> userIds);
+    WishEntity findByWishId(String wishId);
+
+    List<WishEntity> findByUserId(String wishIds);
 
 }
