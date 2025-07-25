@@ -1,9 +1,9 @@
 package grow.a.garden.dto.response.user;
 
+import grow.a.garden.entity.UsersEntity;
 import lombok.Data;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 public class UsersResponse {
@@ -17,5 +17,15 @@ public class UsersResponse {
                 .map(user -> String.valueOf(user.getMessage().getFrom().getId()))
                 .distinct()
                 .toList();
+    }
+
+    public static List<UsersEntity> usersEntityFromUserResponse(List<Users> users) {
+        return users.stream()
+                .map(user -> UsersEntity.builder()
+                        .userId(String.valueOf(user.getMessage().getFrom().getId()))
+                        .name(user.getMessage().getFrom().getLastName())
+                        .build())
+                .toList();
+
     }
 }

@@ -15,7 +15,7 @@ public interface ExternalApi {
 
     UsersResponse getUsers();
 
-    void sendMessage(String message);
+    void sendMessage(String message, String userId);
 
     void sendMessageV2(String message, List<String> users);
 

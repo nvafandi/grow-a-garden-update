@@ -2,15 +2,20 @@ package grow.a.garden.service.impl;
 
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.user.UsersResponse;
+import grow.a.garden.entity.UsersEntity;
 import grow.a.garden.repository.ExternalApi;
+import grow.a.garden.repository.ItemsRepository;
 import grow.a.garden.repository.UserRepository;
 import grow.a.garden.repository.WeatherRepository;
 import grow.a.garden.repository.jpa.UsersJpaRepository;
+import grow.a.garden.repository.jpa.WishJpaRespository;
 import grow.a.garden.util.Util;
 import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,17 +29,21 @@ public class SchedulerServiceImpl {
 
     private final UsersJpaRepository usersJpaRepository;
 
-    public SchedulerServiceImpl(ExternalApi externalApi, UserRepository userRepository, WeatherRepository weatherRepository, UsersJpaRepository usersJpaRepository) {
+    private final WishJpaRespository wishJpaRespository;
+
+    private final ItemsRepository itemsRepository;
+
+    public SchedulerServiceImpl(ExternalApi externalApi, UserRepository userRepository, WeatherRepository weatherRepository, UsersJpaRepository usersJpaRepository, WishJpaRespository wishJpaRespository, ItemsRepository itemsRepository) {
         this.externalApi = externalApi;
         this.userRepository = userRepository;
         this.weatherRepository = weatherRepository;
         this.usersJpaRepository = usersJpaRepository;
+        this.wishJpaRespository = wishJpaRespository;
+        this.itemsRepository = itemsRepository;
     }
 
     @Scheduled(fixedRate = 15000) // setiap 15 detik
     public void updatedStock() {
-        log.info("Begin scheduler");
-
         var users = userRepository.checkExistUser();
 
         if (users.isEmpty()) {
@@ -42,29 +51,52 @@ public class SchedulerServiceImpl {
 
             if (userEntities.isEmpty()) {
                 var getUsers = externalApi.getUsers();
-                userRepository.saveUser(getUsers);
-                userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+                if (getUsers != null && getUsers.getResult() != null) {
+                    userRepository.saveUser(getUsers);
+                    userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+                }
             } else {
                 var userList = userEntities.stream()
-                        .map(usersEntity -> usersEntity.getId().toString())
+                        .map(UsersEntity::getUserId)
                         .distinct()
                         .toList();
                 userRepository.storeUser(userList);
+            }
+
+            users = userRepository.checkExistUser();
+            if (users.isEmpty()) {
+                return;
             }
         }
 
         var stockData = externalApi.getStock().getData();
         var message = Util.buildStockMessage(stockData);
 
-        if (Util.isRare(message) && StringUtils.isNotBlank(message) && externalApi.checkExistingMessage(message)) {
-            externalApi.sendMessageV2(message, users);
-            externalApi.resetEttemps(Constant.Keys.STOCK_ETTEMPS);
-        } else {
-            externalApi.countEttemps(Constant.Keys.STOCK_ETTEMPS);
-            log.info("Nothing is rare");
+        if (StringUtils.isBlank(message)) {
+            return;
         }
 
-        log.info("End of scheduler");
+        users.forEach(user -> {
+            var wish = wishJpaRespository.findByUserId(user);
+
+            if (wish == null) {
+                return;
+            }
+
+            var wishList = itemsRepository.wishList(wish);
+
+            if (Util.isRare(wishList, message)) {
+                if (externalApi.checkExistingMessage(message)) {
+                    externalApi.sendMessage(message, user);
+                    externalApi.resetEttemps(Constant.Keys.STOCK_ETTEMPS + user + "|");
+                } else {
+                    externalApi.countEttemps(Constant.Keys.STOCK_ETTEMPS + user + "|");
+                }
+                externalApi.resetEttemps(Constant.Keys.NO_RARE_ETTEMPS);
+            } else {
+                externalApi.countEttemps(Constant.Keys.NO_RARE_ETTEMPS);
+            }
+        });
     }
 
     @Scheduled(fixedRate = 15000)
@@ -72,7 +104,6 @@ public class SchedulerServiceImpl {
         var weather = weatherRepository.listWeather();
 
         if (Util.isActive(weather)) {
-            log.info("Check User");
             var users = userRepository.checkExistUser();
 
             if (users.isEmpty()) {
@@ -80,27 +111,41 @@ public class SchedulerServiceImpl {
 
                 if (userEntities.isEmpty()) {
                     var getUsers = externalApi.getUsers();
-                    userRepository.saveUser(getUsers);
-                    userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+                    if (getUsers != null && getUsers.getResult() != null) {
+                        userRepository.saveUser(getUsers);
+                        userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+                    }
                 } else {
                     var userList = userEntities.stream()
-                            .map(usersEntity -> usersEntity.getId().toString())
+                            .map(UsersEntity::getUserId)
                             .distinct()
                             .toList();
                     userRepository.storeUser(userList);
+                }
+
+                users = userRepository.checkExistUser();
+                if (users.isEmpty()) {
+                    return;
                 }
             }
 
             var message = Util.buildWeatherMessage(weather);
 
-            if (externalApi.checkExistWeather(message)) {
-                externalApi.sendMessageV2(message, users);
-                externalApi.resetEttemps(Constant.Keys.WEATHER_ETTEMPS);
-            } else {
-                externalApi.countEttemps(Constant.Keys.WEATHER_ETTEMPS);
+            if (StringUtils.isBlank(message)) {
+                return;
             }
+
+            users.forEach(user -> {
+                if (externalApi.checkExistWeather(message)) {
+                    externalApi.sendMessage(message, user);
+                    externalApi.resetEttemps(Constant.Keys.WEATHER_ETTEMPS + user + "|");
+                } else {
+                    externalApi.countEttemps(Constant.Keys.WEATHER_ETTEMPS + user + "|");
+                }
+                externalApi.resetEttemps(Constant.Keys.WEATHER_ETTEMPS);
+            });
         } else {
-            log.info("No active weather");
+            externalApi.countEttemps(Constant.Keys.WEATHER_ETTEMPS);
         }
     }
 

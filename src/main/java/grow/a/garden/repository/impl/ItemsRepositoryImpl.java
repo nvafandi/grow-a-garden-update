@@ -153,4 +153,16 @@ public class ItemsRepositoryImpl implements ItemsRepository {
         }
     }
 
+    @Override
+    public List<String> wishList(List<WishEntity> wishEntities) {
+        if (wishEntities == null || wishEntities.isEmpty()) {
+            return List.of();
+        }
+
+        return wishEntities.stream()
+                .map(WishEntity::getDisplayName)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+    }
 }

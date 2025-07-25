@@ -85,12 +85,10 @@ public class ExternalApiImpl implements ExternalApi {
     }
 
     @Override
-    public void sendMessage(String message) {
+    public void sendMessage(String message, String userId) {
         StringBuilder lastMessage = new StringBuilder(message);
         lastMessage.append("\nsent at : ")
                 .append(Util.getCurrentTimeFormatted());
-
-        log.info("message: {}", lastMessage);
 
         try {
             StringBuilder url = new StringBuilder();
@@ -98,7 +96,7 @@ public class ExternalApiImpl implements ExternalApi {
                     .append(token)
                     .append("/sendMessage?")
                     .append("chat_id=")
-                    .append(chatId)
+                    .append(userId)
                     .append("&text=")
                     .append(lastMessage)
                     .append("&parse_mode=Markdown");
@@ -109,10 +107,8 @@ public class ExternalApiImpl implements ExternalApi {
                     null,
                     TelegramMessageResponse.class
             );
-            log.info("Message sent");
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Message failed to send: {}", e.getMessage());
+            log.error("Message failed {}: {}", userId, e.getMessage());
         }
     }
 
@@ -149,6 +145,7 @@ public class ExternalApiImpl implements ExternalApi {
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Message failed to send: {}", e.getMessage());
+            log.error("The messege is: {}", lastMessage);
         }
     }
 
@@ -251,7 +248,9 @@ public class ExternalApiImpl implements ExternalApi {
 
         if (count != null && count == 1) {
             redisTemplate.expire(key, Duration.ofHours(duration));
+
         }
+        log.info("Try to Ettemps {} for: {}", key, count);
     }
 
     @Override

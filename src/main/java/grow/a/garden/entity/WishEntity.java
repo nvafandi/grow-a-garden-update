@@ -27,7 +27,7 @@ public class WishEntity {
     @UuidGenerator(style = UuidGenerator.Style.RANDOM)
     private UUID id;
 
-    @Column(name = "wish_id", nullable = false, unique = true)
+    @Column(name = "wish_id", nullable = false)
     private String wishId;
 
     @Column(name = "display_name")
