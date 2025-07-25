@@ -12,4 +12,6 @@ public interface ItemsRepository {
 
     void saveWishes(String userId, List<ItemsEntity> itemsEntities);
 
+    List<String> wishList(List<WishEntity> wishEntities);
+
 }

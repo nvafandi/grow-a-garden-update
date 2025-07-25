@@ -85,43 +85,38 @@ public class Util {
     public static String buildWeatherMessage(List<Weather> weatherList) {
         StringBuilder message =  new StringBuilder();
 
-        message.append("\uD83C\uDF26\uFE0F *Weather Event Alert!*\n")
-                .append("\n\n");
+        message.append("\uD83C\uDF26\uFE0F *Weather Event Alert!*\n\n");
 
-        weatherList.stream()
-                .filter(weather -> weather.isActive()) // Filter weather berdasarkan id yang ada di list
-                .forEach(weather -> {
-                    message.append("*" + weather.getWeatherName() + "*")
-                            .append("\n\n\nDuration : ")
-                            .append(weather.getDuration() / 60)
-                            .append(" minutes");
-                });
+        List<Weather> activeWeathers = weatherList.stream()
+                .filter(Weather::isActive)
+                .toList();
+
+        final int[] index = {0};
+
+        activeWeathers.forEach(weather -> {
+            if (index[0] > 0) {
+                message.append("Next weather\n\n");
+            }
+            message.append("*")
+                    .append(weather.getWeatherName())
+                    .append("*\nDuration : ")
+                    .append(weather.getDuration() / 60)
+                    .append(" minutes\n");
+            index[0]++;
+        });
+
 
         return message.toString();
     }
 
+    public static boolean isRare(List<String> wish, String message) {
+        if (wish == null || message == null) {
+            return false;
+        }
 
-    public static boolean isRare(String message) {
-        return message.contains(Constant.Gear.BASIC_SPRINKLER) ||
-                message.contains(Constant.Gear.ADVANCED_SPRINKLER) ||
-                message.contains(Constant.Gear.GODLY_SPRINKLER) ||
-                message.contains(Constant.Gear.MASTER_SPRINKLER) ||
-                message.contains(Constant.Gear.MEDIUM_TOY) ||
-                message.contains(Constant.Gear.MEDIUM_TREAT) ||
-                message.contains(Constant.Gear.TANNING_MIRROR) ||
-                message.contains(Constant.Gear.LEVELUP_LOLLIPOP) ||
-                message.contains(Constant.Egg.COMMON_SUMMER_EGG) ||
-                message.contains(Constant.Egg.RARE_SUMMER_EGG) ||
-                message.contains(Constant.Egg.PARADISE_EGG) ||
-                message.contains(Constant.Egg.BUG_EGG) ||
-                message.contains(Constant.Seed.MUSHROOM) ||
-                message.contains(Constant.Seed.BEANSTALK) ||
-                message.contains(Constant.Seed.EMBER_LILY) ||
-                message.contains(Constant.Seed.SUGAR_APPLE) ||
-                message.contains(Constant.Seed.BURNING_BUD) ||
-                message.contains(Constant.Seed.GIANT_PINECONE) ||
-//                message.contains(Constant.ADDITIONAL) ||
-                message.contains(Constant.Other.TRAVELING);
+        return wish.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(message::contains);
     }
 
     public static String getCurrentTimeFormatted() {

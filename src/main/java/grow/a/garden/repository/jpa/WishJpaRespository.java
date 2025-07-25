@@ -12,6 +12,6 @@ public interface WishJpaRespository extends JpaRepository<WishEntity, UUID> {
 
     WishEntity findByWishId(String wishId);
 
-    List<WishEntity> findByUserId(String wishIds);
+    List<WishEntity> findByUserId(String userId);
 
 }

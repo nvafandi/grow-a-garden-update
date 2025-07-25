@@ -2,7 +2,10 @@ package grow.a.garden.service.impl;
 
 import grow.a.garden.constant.Constant;
 import grow.a.garden.dto.response.base.BaseResponse;
+import grow.a.garden.dto.response.user.UsersResponse;
 import grow.a.garden.repository.ExternalApi;
+import grow.a.garden.repository.UserRepository;
+import grow.a.garden.repository.jpa.UsersJpaRepository;
 import grow.a.garden.service.StockService;
 import grow.a.garden.util.Util;
 import io.micrometer.common.util.StringUtils;
@@ -16,8 +19,17 @@ public class StockServiceImpl implements StockService {
 
     private final ExternalApi externalApi;
 
-    public StockServiceImpl(ExternalApi externalApi) {
+    private final UserRepository userRepository;
+
+    private final UsersJpaRepository usersJpaRepository;
+
+    private final SchedulerServiceImpl schedulerService;
+
+    public StockServiceImpl(ExternalApi externalApi, UserRepository userRepository, UsersJpaRepository usersJpaRepository, SchedulerServiceImpl schedulerService) {
         this.externalApi = externalApi;
+        this.userRepository = userRepository;
+        this.usersJpaRepository = usersJpaRepository;
+        this.schedulerService = schedulerService;
     }
 
     @Override
@@ -50,8 +62,29 @@ public class StockServiceImpl implements StockService {
         var message = Util.buildStockMessage(stock.getData());
 
         try {
+            var users = userRepository.checkExistUser();
+
+            if (users.isEmpty()) {
+                var userEntities = usersJpaRepository.findAll();
+
+                if (userEntities.isEmpty()) {
+                    var getUsers = externalApi.getUsers();
+                    userRepository.saveUser(getUsers);
+                    userRepository.storeUser(UsersResponse.fromUsersList(getUsers.getResult()));
+                } else {
+                    var userList = userEntities.stream()
+                            .map(usersEntity -> usersEntity.getId().toString())
+                            .distinct()
+                            .toList();
+                    userRepository.storeUser(userList);
+                }
+                users = userRepository.checkExistUser();
+            }
+
             if (StringUtils.isNotBlank(message)) {
-                externalApi.sendMessage(message);
+                users.forEach(user -> {
+                    externalApi.sendMessage(message, user);
+                });
             } else {
                 return BaseResponse.builder()
                         .status(HttpStatus.NO_CONTENT.value())

@@ -14,6 +14,7 @@ public class Constant {
         public static String WEATHER = "weather";
         public static String STOCK_ETTEMPS = "|STOCK_ETTEMPS|";
         public static String WEATHER_ETTEMPS = "|WEATHER_ETTEMPS|";
+        public static String NO_RARE_ETTEMPS = "|NO_RARE_ETTEMS|";
     }
 
     public static class Message {
