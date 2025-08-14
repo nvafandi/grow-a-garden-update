@@ -7,6 +7,7 @@ public class Constant {
         public static String STOCK_URL = "https://gagstock.gleeze.com/grow-a-garden";
         public static String WEATHER_URL = "https://api.joshlei.com/v2/growagarden/weather";
         public static String ALL_ITEMS = "https://api.joshlei.com/v2/growagarden/info";
+        public static String WS_URL = "wss://websocket.joshlei.com/growagarden?jstudio-key=js_6bee28b177deb5b94e9874299a0c9a4d1f8055241fc28b4788c5b27c4d6b64c7";
     }
 
     public static class Keys {
